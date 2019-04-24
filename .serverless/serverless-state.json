@@ -1,0 +1,772 @@
+{
+  "service": {
+    "service": "cloudwatch-logs-to-logzio",
+    "serviceObject": {
+      "name": "cloudwatch-logs-to-logzio"
+    },
+    "provider": {
+      "stage": "dev",
+      "region": "us-east-1",
+      "variableSyntax": "\\${([ ~:a-zA-Z0-9._@'\",\\-\\/\\(\\)*]+?)}",
+      "name": "aws",
+      "runtime": "nodejs8.10",
+      "versionFunctions": false,
+      "remoteFunctionData": null,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ShipDashlogsDashtoDashlogzioLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio"
+            }
+          },
+          "SetDashretentionLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/cloudwatch-logs-to-logzio-dev-set-retention"
+            }
+          },
+          "SubscribeLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/cloudwatch-logs-to-logzio-dev-subscribe"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "dev",
+                        "cloudwatch-logs-to-logzio",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio:*"
+                          },
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-set-retention:*"
+                          },
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-subscribe:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio:*:*"
+                          },
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-set-retention:*:*"
+                          },
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-subscribe:*:*"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "cloudwatch-logs-to-logzio",
+                    "dev",
+                    {
+                      "Fn::Sub": "${AWS::Region}"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "ShipDashlogsDashtoDashlogzioLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/cloudwatch-logs-to-logzio/dev/1556141007879-2019-04-24T21:23:27.879Z/cloudwatch-logs-to-logzio.zip"
+              },
+              "FunctionName": "cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio",
+              "Handler": "functions/ship-logs/handler.handler",
+              "MemorySize": 128,
+              "Role": {
+                "Fn::GetAtt": [
+                  "ShipDashlogsDashtoDashlogzioIamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Runtime": "nodejs8.10",
+              "Timeout": 6,
+              "Description": "Sends CloudWatch logs to Logz.io",
+              "Environment": {
+                "Variables": {
+                  "logstash_host": "listener.logz.io",
+                  "logstash_port": 5050,
+                  "token": "eermqyGeRsqoUJJZSEyTrRvixsfkmBmR"
+                }
+              }
+            },
+            "DependsOn": [
+              "ShipDashlogsDashtoDashlogzioIamRoleLambdaExecution",
+              "ShipDashlogsDashtoDashlogzioLogGroup"
+            ]
+          },
+          "SetDashretentionLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/cloudwatch-logs-to-logzio/dev/1556141007879-2019-04-24T21:23:27.879Z/cloudwatch-logs-to-logzio.zip"
+              },
+              "FunctionName": "cloudwatch-logs-to-logzio-dev-set-retention",
+              "Handler": "functions/set-retention/handler.handler",
+              "MemorySize": 128,
+              "Role": {
+                "Fn::GetAtt": [
+                  "SetDashretentionIamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Runtime": "nodejs8.10",
+              "Timeout": 6,
+              "Description": "Sets the log retention policy to the specified no. of days",
+              "Environment": {
+                "Variables": {
+                  "retention_days": 7
+                }
+              }
+            },
+            "DependsOn": [
+              "SetDashretentionIamRoleLambdaExecution",
+              "SetDashretentionLogGroup"
+            ]
+          },
+          "SubscribeLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/cloudwatch-logs-to-logzio/dev/1556141007879-2019-04-24T21:23:27.879Z/cloudwatch-logs-to-logzio.zip"
+              },
+              "FunctionName": "cloudwatch-logs-to-logzio-dev-subscribe",
+              "Handler": "functions/subscribe/handler.handler",
+              "MemorySize": 128,
+              "Role": {
+                "Fn::GetAtt": [
+                  "SubscribeIamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Runtime": "nodejs8.10",
+              "Timeout": 6,
+              "Description": "Subscribe logs to the ship-logs-to-logzio function",
+              "Environment": {
+                "Variables": {
+                  "dest_func": "cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio",
+                  "account_id": {
+                    "Fn::Sub": "${AWS::AccountId}"
+                  },
+                  "prefix": "/aws/lambda"
+                }
+              }
+            },
+            "DependsOn": [
+              "SubscribeIamRoleLambdaExecution",
+              "SubscribeLogGroup"
+            ]
+          },
+          "ShipDashlogsDashtoDashlogzioIamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "dev",
+                        "cloudwatch-logs-to-logzio",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": "cloudwatch:PutMetricData",
+                        "Resource": "*"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": "ship-logs-role"
+            }
+          },
+          "SetDashretentionIamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "dev",
+                        "cloudwatch-logs-to-logzio",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-set-retention:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutRetentionPolicy"
+                        ],
+                        "Resource": "*"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "cloudwatch-logs-to-logzio",
+                    "dev",
+                    "set-retention",
+                    {
+                      "Fn::Sub": "${AWS::Region}"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "SubscribeIamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "dev",
+                        "cloudwatch-logs-to-logzio",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cloudwatch-logs-to-logzio-dev-subscribe:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutSubscriptionFilter"
+                        ],
+                        "Resource": "*"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "cloudwatch-logs-to-logzio",
+                    "dev",
+                    "subscribe",
+                    {
+                      "Fn::Sub": "${AWS::Region}"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "SetDashretentionEventsRuleCloudWatchEvent1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "EventPattern": {
+                "source": [
+                  "aws.logs"
+                ],
+                "detail-type": [
+                  "AWS API Call via CloudTrail"
+                ],
+                "detail": {
+                  "eventSource": [
+                    "logs.amazonaws.com"
+                  ],
+                  "eventName": [
+                    "CreateLogGroup"
+                  ]
+                }
+              },
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "SetDashretentionLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "set-retentionCloudWatchEvent"
+                }
+              ]
+            }
+          },
+          "SetDashretentionLambdaPermissionEventsRuleCloudWatchEvent1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "SetDashretentionLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "events.",
+                    {
+                      "Ref": "AWS::URLSuffix"
+                    }
+                  ]
+                ]
+              },
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "SetDashretentionEventsRuleCloudWatchEvent1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "SubscribeEventsRuleCloudWatchEvent1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "EventPattern": {
+                "source": [
+                  "aws.logs"
+                ],
+                "detail-type": [
+                  "AWS API Call via CloudTrail"
+                ],
+                "detail": {
+                  "eventSource": [
+                    "logs.amazonaws.com"
+                  ],
+                  "eventName": [
+                    "CreateLogGroup"
+                  ]
+                }
+              },
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "SubscribeLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "subscribeCloudWatchEvent"
+                }
+              ]
+            }
+          },
+          "SubscribeLambdaPermissionEventsRuleCloudWatchEvent1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "SubscribeLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "events.",
+                    {
+                      "Ref": "AWS::URLSuffix"
+                    }
+                  ]
+                ]
+              },
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "SubscribeEventsRuleCloudWatchEvent1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "LambdaInvokePermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "Action": "lambda:InvokeFunction",
+              "FunctionName": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Ref": "ShipDashlogsDashtoDashlogzioLambdaFunction"
+                    }
+                  ]
+                ]
+              },
+              "Principal": {
+                "Fn::Sub": "logs.${AWS::Region}.amazonaws.com"
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      },
+      "coreCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "plugins": [
+      "serverless-pseudo-parameters",
+      "serverless-iam-roles-per-function"
+    ],
+    "pluginsData": {},
+    "functions": {
+      "ship-logs-to-logzio": {
+        "handler": "functions/ship-logs/handler.handler",
+        "description": "Sends CloudWatch logs to Logz.io",
+        "memorySize": 128,
+        "environment": {
+          "logstash_host": "listener.logz.io",
+          "logstash_port": 5050,
+          "token": "eermqyGeRsqoUJJZSEyTrRvixsfkmBmR"
+        },
+        "iamRoleStatementsName": "ship-logs-role",
+        "iamRoleStatements": [
+          {
+            "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"ShipDashlogsDashtoDashlogzioIamRoleLambdaExecution\"][\"Properties\"][\"Policies\"][0][\"PolicyDocument\"][\"Statement\"][1]"
+          }
+        ],
+        "events": [],
+        "name": "cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio",
+        "package": {},
+        "memory": 128,
+        "timeout": 6,
+        "runtime": "nodejs8.10",
+        "vpc": {}
+      },
+      "set-retention": {
+        "handler": "functions/set-retention/handler.handler",
+        "description": "Sets the log retention policy to the specified no. of days",
+        "memorySize": 128,
+        "environment": {
+          "retention_days": 7
+        },
+        "iamRoleStatements": [
+          {
+            "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"SetDashretentionIamRoleLambdaExecution\"][\"Properties\"][\"Policies\"][0][\"PolicyDocument\"][\"Statement\"][1]"
+          }
+        ],
+        "events": [
+          {
+            "cloudwatchEvent": {
+              "event": {
+                "source": [
+                  "aws.logs"
+                ],
+                "detail-type": [
+                  "AWS API Call via CloudTrail"
+                ],
+                "detail": {
+                  "eventSource": [
+                    "logs.amazonaws.com"
+                  ],
+                  "eventName": [
+                    "CreateLogGroup"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "name": "cloudwatch-logs-to-logzio-dev-set-retention",
+        "package": {},
+        "memory": 128,
+        "timeout": 6,
+        "runtime": "nodejs8.10",
+        "vpc": {}
+      },
+      "subscribe": {
+        "handler": "functions/subscribe/handler.handler",
+        "description": "Subscribe logs to the ship-logs-to-logzio function",
+        "memorySize": 128,
+        "environment": {
+          "dest_func": "cloudwatch-logs-to-logzio-dev-ship-logs-to-logzio",
+          "account_id": "#{AWS::AccountId}",
+          "prefix": "/aws/lambda"
+        },
+        "iamRoleStatements": [
+          {
+            "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"SubscribeIamRoleLambdaExecution\"][\"Properties\"][\"Policies\"][0][\"PolicyDocument\"][\"Statement\"][1]"
+          }
+        ],
+        "events": [
+          {
+            "cloudwatchEvent": {
+              "event": {
+                "source": [
+                  "aws.logs"
+                ],
+                "detail-type": [
+                  "AWS API Call via CloudTrail"
+                ],
+                "detail": {
+                  "eventSource": [
+                    "logs.amazonaws.com"
+                  ],
+                  "eventName": [
+                    "CreateLogGroup"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "name": "cloudwatch-logs-to-logzio-dev-subscribe",
+        "package": {},
+        "memory": 128,
+        "timeout": 6,
+        "runtime": "nodejs8.10",
+        "vpc": {}
+      }
+    },
+    "resources": {
+      "Resources": {
+        "LambdaInvokePermission": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "Action": "lambda:InvokeFunction",
+            "FunctionName": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "ShipDashlogsDashtoDashlogzioLambdaFunction"
+                  }
+                ]
+              ]
+            },
+            "Principal": "logs.#{AWS::Region}.amazonaws.com"
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "layers": {},
+    "artifact": "/home/seagraph/cloudwatch-logs-to-logzio/.serverless/cloudwatch-logs-to-logzio.zip"
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/cloudwatch-logs-to-logzio/dev/1556141007879-2019-04-24T21:23:27.879Z",
+    "artifact": "cloudwatch-logs-to-logzio.zip"
+  }
+}
